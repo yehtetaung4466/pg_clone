@@ -38,7 +38,6 @@ Example:
 ## 📝 Notes
 
 - URLs must be full PostgreSQL connection URIs (e.g., `postgres://user:pass@host:port/db`)
-- Only the schema is transferred — no data is copied
 - The script uses a temp file for the dump and automatically deletes it after import
 - If the destination database already has conflicting objects, import may fail
 
