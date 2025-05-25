@@ -1,0 +1,53 @@
+#!/usr/bin/env fish
+
+function pg_clone
+    set -l from_url ""
+    set -l to_url ""
+
+    for i in (seq 1 (count $argv))
+        switch $argv[$i]
+            case '--from'
+                set from_url $argv[(math $i + 1)]
+            case '--to'
+                set to_url $argv[(math $i + 1)]
+        end
+    end
+
+    if test -z "$from_url" -o -z "$to_url"
+        echo "Usage: pg_clone --from <existing_db_url> --to <new_db_url>"
+        return 1
+    end
+
+    echo "🔌 Checking connection to existing DB..."
+    if not psql $from_url -c '\q' ^/dev/null
+        echo "❌ Error: Cannot connect to existing database."
+        return 1
+    end
+
+    echo "🔌 Checking connection to new DB..."
+    if not psql $to_url -c '\q' ^/dev/null
+        echo "❌ Error: Cannot connect to new database."
+        return 1
+    end
+
+    set -l schema_file (mktemp /tmp/pg_schema_clone_XXXX.sql)
+
+    echo "📦 Dumping schema from existing DB..."
+    if not pg_dump --no-owner --no-privileges $from_url > $schema_file
+        echo "❌ Error: Failed to dump schema."
+        rm -f $schema_file
+        return 1
+    end
+
+    echo "📥 Importing schema into new DB..."
+    if not psql $to_url < $schema_file
+        echo "❌ Error: Failed to import schema."
+        rm -f $schema_file
+        return 1
+    end
+
+    rm -f $schema_file
+    echo "✅ Schema cloned successfully."
+end
+
+pg_clone $argv
